@@ -70,7 +70,13 @@ public class App { // プログラム本体の始まり【毎】
                 exchange.close(); // ★追加
                 return; // ★追加
             } else if (path.equals("/")) { // 【追加】フォームとTodo一覧を表示する
-                String html = "<form method='post' action='/add'><input name='todo'><button>追加</button></form><ul>"; // 【追加】入力フォームと一覧の始まり
+                String html = "<!DOCTYPE html><html lang='ja'><head><meta charset='UTF-8'><title>わたしのTodo</title>"
+                        + "<style>body { max-width: 600px; margin: 24px auto; padding: 0 16px; font-size: 16px; } input, button { font-size: 1em; }</style>"
+                        + "</head><body><h1>わたしのTodo</h1>"
+                        + "<form method='post' action='/add'><input name='todo'><button>追加</button></form><ul>";
+                if (todos.isEmpty()) {
+                    html += "<li>やることは、いまゼロです</li>";
+                }
                 for (Todo todo : todos) { // ★変更
                     String mark = ""; // ★変更
                     if (todo.isDone()) { // ★変更
@@ -79,7 +85,7 @@ public class App { // プログラム本体の始まり【毎】
                     html += "<li>" + todo.getTitle() + mark + " <a href='/done?id=" + todo.getId()
                             + "'>完了</a> <a href='/delete?id=" + todo.getId() + "'>削除</a></li>"; // ★追加
                 } // Todoをすべて取り出し終える
-                html += "</ul>"; // 一覧のHTMLを閉じる
+                html += "</ul></body></html>"; // 一覧とページのHTMLを閉じる
                 message = html; // 組み立てたHTMLを応答にする*******
                 exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8"); // このパスだけHTMLとして返す
             } else {
