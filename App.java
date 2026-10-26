@@ -55,6 +55,25 @@ public class App { // プログラム本体の始まり【毎】
                 exchange.sendResponseHeaders(303, -1); // ★追加
                 exchange.close(); // ★追加
                 return; // ★追加
+            } else if (path.equals("/undone") && method.equals("GET")) {
+                String query = exchange.getRequestURI().getQuery();
+                if (query != null && query.startsWith("id=") && query.length() > 3) {
+                    try {
+                        int id = Integer.parseInt(query.substring(3));
+                        for (Todo todo : todos) {
+                            if (todo.getId() == id) {
+                                todo.setDone(false);
+                                break;
+                            }
+                        }
+                    } catch (NumberFormatException e) {
+                        // 何も変えない
+                    }
+                }
+                exchange.getResponseHeaders().set("Location", "/");
+                exchange.sendResponseHeaders(303, -1);
+                exchange.close();
+                return;
             } else if (path.equals("/delete") && method.equals("GET")) { // ★追加
                 String query = exchange.getRequestURI().getQuery(); // ★追加
                 if (query != null && query.startsWith("id=") && query.length() > 3) { // ★追加
@@ -78,12 +97,13 @@ public class App { // プログラム本体の始まり【毎】
                     html += "<li>やることは、いまゼロです</li>";
                 }
                 for (Todo todo : todos) { // ★変更
-                    String mark = ""; // ★変更
+                    String title = todo.getTitle(); // 完了した項目の表示を切り替える
                     if (todo.isDone()) { // ★変更
-                        mark = " ✔"; // ★変更
+                        title = "<s>" + title + "</s>"; // 完了した項目名に取り消し線を付ける
                     } // ★変更
-                    html += "<li>" + todo.getTitle() + mark + " <a href='/done?id=" + todo.getId()
-                            + "'>完了</a> <a href='/delete?id=" + todo.getId() + "'>削除</a></li>"; // ★追加
+                    html += "<li>" + title + " <a href='/done?id=" + todo.getId()
+                            + "'>完了</a> <a href='/undone?id=" + todo.getId()
+                            + "'>未完了</a> <a href='/delete?id=" + todo.getId() + "'>削除</a></li>";
                 } // Todoをすべて取り出し終える
                 html += "</ul></body></html>"; // 一覧とページのHTMLを閉じる
                 message = html; // 組み立てたHTMLを応答にする*******
