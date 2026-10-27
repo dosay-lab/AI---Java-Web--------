@@ -70,9 +70,51 @@ public class App {
                 .replace("\"", "&quot;").replace("'", "&#39;"); // ★ HTML文字を置換
     }
 
+    private static String escapeJson(String text) { // JSON文字列の特殊文字を変換
+        StringBuilder escaped = new StringBuilder(); // 変換後の文字列を用意
+        for (int i = 0; i < text.length(); i++) { // 文字を順に確認
+            char c = text.charAt(i); // 現在の文字を取得
+            switch (c) { // 特殊文字を判定
+                case '"' -> escaped.append("\\\""); // 引用符を変換
+                case '\\' -> escaped.append("\\\\"); // バックスラッシュを変換
+                case '\n' -> escaped.append("\\n"); // 改行を変換
+                case '\r' -> escaped.append("\\r"); // 復帰を変換
+                case '\t' -> escaped.append("\\t"); // タブを変換
+                default -> { // その他の文字を処理
+                    if (c < 0x20)
+                        escaped.append(String.format("\\u%04x", (int) c)); // 制御文字を変換
+                    else
+                        escaped.append(c); // 通常の文字を追加
+                }
+            }
+        }
+        return escaped.toString(); // 変換結果を返す
+    }
+
     public static void main(String[] args) throws Exception {
         createTable(); // ★ 起動時に表を用意
         HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
+        server.createContext("/api/todos", exchange -> { // Todo一覧のAPIを登録
+            try { // データベースから一覧を取得
+                StringBuilder json = new StringBuilder("["); // JSON配列を開始
+                for (Todo todo : list()) { // Todoを順に追加
+                    if (json.length() > 1)
+                        json.append(','); // 要素の間にカンマを追加
+                    json.append("{\"title\":\""); // タイトル項目を開始
+                    json.append(escapeJson(todo.getTitle())); // タイトルをJSON用に変換
+                    json.append("\",\"done\":").append(todo.isDone()).append('}'); // 完了状態を追加
+                }
+                json.append(']'); // JSON配列を閉じる
+                byte[] response = json.toString().getBytes(StandardCharsets.UTF_8); // UTF-8に変換
+                exchange.getResponseHeaders().set("Content-Type", "application/json"); // 応答形式を設定
+                exchange.sendResponseHeaders(200, response.length); // 成功を返す
+                exchange.getResponseBody().write(response); // JSON本文を送信
+            } catch (SQLException e) { // データベースエラーを処理
+                exchange.sendResponseHeaders(500, -1); // エラーを返す
+            } finally { // 応答後に後始末
+                exchange.close(); // 接続を閉じる
+            }
+        }); // APIの登録を終了
         server.createContext("/", exchange -> {
             String path = exchange.getRequestURI().getPath();
             String method = exchange.getRequestMethod();
